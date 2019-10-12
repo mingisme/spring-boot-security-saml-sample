@@ -270,6 +270,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
 		return extendedMetadataDelegate;
 	}
 
+    @Bean
+    @Qualifier("idp-keycloak")
+    public ExtendedMetadataDelegate keycloakExtendedMetadataProvider()
+            throws MetadataProviderException {
+        String idpKeycloakMetadataURL =  "http://localhost:8081/auth/realms/demo/protocol/saml/descriptor";
+        HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(
+                this.backgroundTaskTimer, httpClient(), idpKeycloakMetadataURL);
+        httpMetadataProvider.setParserPool(parserPool());
+        ExtendedMetadataDelegate extendedMetadataDelegate =
+                new ExtendedMetadataDelegate(httpMetadataProvider, extendedMetadata());
+        extendedMetadataDelegate.setMetadataTrustCheck(true);
+        extendedMetadataDelegate.setMetadataRequireSignature(false);
+        backgroundTaskTimer.purge();
+        return extendedMetadataDelegate;
+    }
+
     // IDP Metadata configuration - paths to metadata of IDPs in circle of trust
     // is here
     // Do no forget to call iniitalize method on providers
@@ -278,6 +294,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
     public CachingMetadataManager metadata() throws MetadataProviderException {
         List<MetadataProvider> providers = new ArrayList<MetadataProvider>();
         providers.add(ssoCircleExtendedMetadataProvider());
+        providers.add(keycloakExtendedMetadataProvider());
         return new CachingMetadataManager(providers);
     }
  
