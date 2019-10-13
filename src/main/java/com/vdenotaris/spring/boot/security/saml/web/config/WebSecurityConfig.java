@@ -289,12 +289,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
     // IDP Metadata configuration - paths to metadata of IDPs in circle of trust
     // is here
     // Do no forget to call iniitalize method on providers
+//    @Bean
+//    @Qualifier("metadata")
+//    public CachingMetadataManager metadata() throws MetadataProviderException {
+//        List<MetadataProvider> providers = new ArrayList<MetadataProvider>();
+//        providers.add(ssoCircleExtendedMetadataProvider());
+//        providers.add(keycloakExtendedMetadataProvider());
+//        return new CachingMetadataManager(providers);
+//    }
+
     @Bean
     @Qualifier("metadata")
-    public CachingMetadataManager metadata() throws MetadataProviderException {
-        List<MetadataProvider> providers = new ArrayList<MetadataProvider>();
-        providers.add(ssoCircleExtendedMetadataProvider());
-        providers.add(keycloakExtendedMetadataProvider());
+    public CachingMetadataManager metadata(List<MetadataProvider> providers) throws MetadataProviderException {
         return new CachingMetadataManager(providers);
     }
  

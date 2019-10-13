@@ -29,3 +29,4 @@ hs_err_pid*
 *.jar
 *.war
 *.ear
+.attach_pid*

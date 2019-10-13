@@ -43,8 +43,8 @@ public class CurrentUserHandlerMethodArgumentResolver implements
 			ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
 			WebDataBinderFactory binderFactory) throws Exception {
 		if (this.supportsParameter(methodParameter)) {
-			Principal principal = (Principal) webRequest.getUserPrincipal();
-			return (User) ((Authentication) principal).getPrincipal();
+			Principal principal =  webRequest.getUserPrincipal();
+			return  ((Authentication) principal).getPrincipal();
 		} else {
 			return WebArgumentResolver.UNRESOLVED;
 		}
