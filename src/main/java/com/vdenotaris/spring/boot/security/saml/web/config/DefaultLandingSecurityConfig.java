@@ -18,10 +18,12 @@ import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
-@Order(60)
+@Order(20)
 public class DefaultLandingSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.antMatcher("/ensso/landing").authorizeRequests().anyRequest().authenticated().and().addFilterAfter(new DefaultEnSsoLandingFilter(), ExceptionTranslationFilter.class);
+        http.antMatcher("/ensso/landing")
+                .authorizeRequests().anyRequest().authenticated()
+                .and().addFilterAfter(new DefaultEnSsoLandingFilter(), ExceptionTranslationFilter.class);
     }
 }
