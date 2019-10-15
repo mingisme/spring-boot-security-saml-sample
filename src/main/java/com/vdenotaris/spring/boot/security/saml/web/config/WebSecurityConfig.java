@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 
+import com.vdenotaris.spring.boot.security.saml.web.core.DefaultEnSsoLandingFilter;
+import com.vdenotaris.spring.boot.security.saml.web.core.SAMLAuthenticationSuccessHandler;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.velocity.app.VelocityEngine;
@@ -37,6 +39,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -86,8 +89,9 @@ import org.springframework.security.saml.websso.WebSSOProfileOptions;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -97,7 +101,9 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.vdenotaris.spring.boot.security.saml.web.core.SAMLUserDetailsServiceImpl;
- 
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+
+@Order(40)
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(securedEnabled = true)
@@ -105,6 +111,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
  
 	private Timer backgroundTaskTimer;
 	private MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager;
+
+	@Autowired
+    private SAMLAuthenticationSuccessHandler samlAuthenticationSuccessHandler;
 
 	public void init() {
 		this.backgroundTaskTimer = new Timer(true);
@@ -324,11 +333,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
      
     // Handler deciding where to redirect user after successful login
     @Bean
-    public SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler() {
-        SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler =
-                new SavedRequestAwareAuthenticationSuccessHandler();
-        successRedirectHandler.setDefaultTargetUrl("/landing");
-        return successRedirectHandler;
+    public AuthenticationSuccessHandler successRedirectHandler() {
+//        SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler =
+//                new SavedRequestAwareAuthenticationSuccessHandler();
+//        successRedirectHandler.setDefaultTargetUrl("/landing");
+//        return successRedirectHandler;
+        return samlAuthenticationSuccessHandler;
     }
     
 	// Handler deciding where to redirect user after failed login
@@ -498,6 +508,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
      */
     @Override  
     protected void configure(HttpSecurity http) throws Exception {
+        //TODO: configuration of urls that read value from SecurityContextHolder.getContext().getAuthentication().
+        http.requestMatcher(new OrRequestMatcher(new AntPathRequestMatcher("/saml/**")));
         http
             .httpBasic()
                 .authenticationEntryPoint(samlEntryPoint());      
@@ -505,7 +517,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements I
         		.addFilterBefore(metadataGeneratorFilter(), ChannelProcessingFilter.class)
         		.addFilterAfter(samlFilter(), BasicAuthenticationFilter.class)
         		.addFilterBefore(samlFilter(), CsrfFilter.class);
-        http        
+        http
             .authorizeRequests()
            		.antMatchers("/").permitAll()
            		.antMatchers("/saml/**").permitAll()

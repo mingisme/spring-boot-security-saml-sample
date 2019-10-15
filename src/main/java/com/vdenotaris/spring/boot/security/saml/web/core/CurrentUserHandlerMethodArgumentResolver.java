@@ -36,7 +36,7 @@ public class CurrentUserHandlerMethodArgumentResolver implements
 
 	public boolean supportsParameter(MethodParameter methodParameter) {
 		return methodParameter.getParameterAnnotation(CurrentUser.class) != null
-				&& methodParameter.getParameterType().equals(User.class);
+				&& methodParameter.getParameterType().equals(EnSsoUser.class);
 	}
 
 	public Object resolveArgument(MethodParameter methodParameter,

@@ -16,6 +16,7 @@
 
 package com.vdenotaris.spring.boot.security.saml.web.controllers;
 
+import com.vdenotaris.spring.boot.security.saml.web.core.EnSsoUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -34,15 +35,19 @@ public class LandingController {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(LandingController.class);
 
-	@RequestMapping("/landing")
-	public String landing(@CurrentUser User user, Model model) {
+	@RequestMapping("/saml/landing")
+	public String landing(Model model) {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		if (auth == null)
 			LOG.debug("Current authentication instance from security context is null");
 		else
 			LOG.debug("Current authentication instance from security context: "
 					+ this.getClass().getSimpleName());
-		model.addAttribute("username", 	user.getUsername());
+		if(auth.getPrincipal() instanceof EnSsoUser) {
+			model.addAttribute("username", ((EnSsoUser) auth.getPrincipal()).getName());
+		}else{
+			model.addAttribute("username",auth.getPrincipal());
+		}
 		return "pages/landing";
 	}
 

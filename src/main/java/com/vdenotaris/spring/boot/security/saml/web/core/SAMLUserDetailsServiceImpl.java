@@ -11,47 +11,79 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 package com.vdenotaris.spring.boot.security.saml.web.core;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.opensaml.saml2.core.Attribute;
+import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.XSString;
+import org.opensaml.xml.schema.impl.XSAnyImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SAMLUserDetailsServiceImpl implements SAMLUserDetailsService {
-	
-	// Logger
-	private static final Logger LOG = LoggerFactory.getLogger(SAMLUserDetailsServiceImpl.class);
-	
-	public Object loadUserBySAML(SAMLCredential credential)
-			throws UsernameNotFoundException {
-		
-		// The method is supposed to identify local account of user referenced by
-		// data in the SAML assertion and return UserDetails object describing the user.
-		
-		String userID = credential.getNameID().getValue();
-		
-		LOG.info(userID + " is logged in");
-		List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-		GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_USER");
-		authorities.add(authority);
 
-		// In a real scenario, this implementation has to locate user in a arbitrary
-		// dataStore based on information present in the SAMLCredential and
-		// returns such a date in a form of application specific UserDetails object.
-		return new User(userID, "<abc123>", true, true, true, true, authorities);
-	}
-	
+    // Logger
+    private static final Logger LOG = LoggerFactory.getLogger(SAMLUserDetailsServiceImpl.class);
+
+    @Override
+    public Object loadUserBySAML(SAMLCredential credential)
+            throws UsernameNotFoundException {
+
+        // The method is supposed to identify local account of user referenced by
+        // data in the SAML assertion and return UserDetails object describing the user.
+
+        String userID = credential.getNameID().getValue();
+
+        LOG.info(userID + " is logged in");
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        MultiValueMap<String, Object> attributes = new LinkedMultiValueMap<>();
+
+        List<Attribute> attributeList = credential.getAttributes();
+        for (Attribute att : attributeList) {
+            String name = att.getFriendlyName();
+            if (name == null) {
+                name = att.getName();
+            }
+            List<XMLObject> attributeValues = att.getAttributeValues();
+            List<String> collect = attributeValues.stream().map(o -> getAttributeValue(o)).collect(Collectors.toList());
+            attributes.addAll(name, collect);
+        }
+
+        return new SAMLUser(userID, attributes, authorities);
+    }
+
+    private String getAttributeValue(XMLObject attributeValue) {
+        return attributeValue == null ?
+                null :
+                attributeValue instanceof XSString ?
+                        getStringAttributeValue((XSString) attributeValue) :
+                        attributeValue instanceof XSAnyImpl ?
+                                getAnyAttributeValue((XSAnyImpl) attributeValue) :
+                                attributeValue.toString();
+    }
+
+    private String getStringAttributeValue(XSString attributeValue) {
+        return attributeValue.getValue();
+    }
+
+    private String getAnyAttributeValue(XSAnyImpl attributeValue) {
+        return attributeValue.getTextContent();
+    }
+
 }
